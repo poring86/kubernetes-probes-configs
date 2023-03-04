@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: node-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: node
+  template:
+    metadata:
+      labels:
+        app: node
+    spec:
+      containers:
+        - name: node
+          image: poring86/nodeconfigmap
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: 3000
+            failureThreshold: 30
+            periodSeconds: 2
+            initialDelaySeconds: 1
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 3000
+            # successThreshold: 1
+            initialDelaySeconds: 1
+            periodSeconds: 2
+            failureThreshold: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 3000
+            # successThreshold: 1
+            initialDelaySeconds: 1
+            periodSeconds: 5
+            failureThreshold: 1
+          envFrom:
+            - configMapRef:
+                name: node-env
+            - secretRef:
+                name: node-secret
+          volumeMounts:
+            # Path no container
+            - mountPath: "/node/people"
+              name: config
+              readOnly: true
+          env:
+            - name: DEMO_GREETING
+              value: "Hello from the environment"
+          resources:
+            limits:
+              memory: 512Mi
+              cpu: "1"
+            requests:
+              memory: 256Mi
+              cpu: "0.2"
+      volumes:
+        - name: config
+          configMap:
+            name: configmap-people
+            items:
+              - key: members
+                path: "people.txt"
